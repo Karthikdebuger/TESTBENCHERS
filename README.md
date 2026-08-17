@@ -10,8 +10,8 @@ Handles **speckle noise**, **Gaussian noise**, and **low-resolution downsampling
 
 ### 0. Download Pre-Trained Weights
 The trained model weights (`model.pt`, 1.3GB) are hosted on Google Drive due to GitHub file size limits.
-- **Download Link**: [YOUR_NEW_GOOGLE_DRIVE_LINK_HERE]
-- Place the downloaded `model.pt` file inside the `weights/` directory of this repository.
+- **Download Link**: [Google Drive - model.pt](https://drive.google.com/drive/folders/1PS2Og-_RbREirUDsEa4ehLZ2ezrFTKtk?usp=sharing)
+- Place the downloaded `model.pt` file exactly inside the `models/` directory of this repository before running.
 
 ### 1. Clone & Install
 ```bash
@@ -63,23 +63,19 @@ Metrics (PSNR/SSIM/LPIPS) → printed to console & saved to `outputs/metrics.jso
 ```
 ├── README.md                      # this file
 ├── requirements.txt               # pinned dependencies
+├── run.py                         # execution script — the graded file
+├── models/
+│   └── model.pt                   # trained checkpoint (download via Drive link)
+├── Restored_Test_Outputs/         # where model output .npy files are saved
 ├── configs/
-│   └── train.yaml                 # all hyperparameters (hashed per run)
-├── src/
-│   ├── model.py                   # NAFNet + conditioning + unrolled stages + SR head
-│   ├── dataset.py                 # channel-agnostic loader, range-aware normalization
-│   ├── augment.py                 # physics-aware, order-randomized augmentation
-│   ├── losses.py                  # Charbonnier + SSIM + FFT + Edge (Sobel) + range-consistency
-│   ├── train.py                   # AMP, EMA, cosine LR, seeded, config-hashed
-│   └── utils.py                   # utilities
-├── evaluate.py                    # standalone evaluation — the graded file
-├── weights/
-│   └── model.pt                   # trained checkpoint
-├── outputs/
-│   └── restored_test/             # model outputs on test set
-├── report/
-│   └── data_model_loss_writeup.md # Data/Model/Loss rationale
-└── BUILD_LOG.md                   # step-by-step build log
+│   └── train.yaml                 # hyperparameters
+└── src/
+    ├── model.py                   # NAFNet + conditioning + unrolled stages
+    ├── dataset.py                 # loader, normalization
+    ├── augment.py                 # randomized augmentation
+    ├── losses.py                  # Charbonnier + SSIM + FFT
+    ├── train.py                   # training loop
+    └── utils.py                   # utilities
 ```
 
 ## Key Design Decisions
