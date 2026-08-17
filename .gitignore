@@ -1,0 +1,9 @@
+# Ignore heavy datasets
+data/
+Test_NoisyLR.zip
+comparisons/
+# Ignore huge model weights (must be uploaded to GDrive)
+models/model.pt
+outputs/
+__pycache__/
+*.pyc

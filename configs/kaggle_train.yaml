@@ -1,0 +1,140 @@
+# ============================================================================
+# SemiCon AI Hackathon — Training Configuration
+# Architecture: Unified NAFNet + Degradation-Conditioning + Unrolled Stages
+# ============================================================================
+# This config is hashed and logged alongside each checkpoint for reproducibility.
+
+# --- Seed & Reproducibility ---
+seed: 42
+
+# --- Device ---
+device: "auto"  # "auto" | "cuda" | "cpu"
+
+# --- Data ---
+data:
+  train_noisy_dir: "data/train/noisy"
+  train_gt_dir: "data/train/gt"
+  val_noisy_dir: "data/val/noisy"
+  val_gt_dir: "data/val/gt"
+  test_noisy_dir: "data/test/noisy"
+  test_gt_dir: "data/test/gt"
+  # Supported extensions — dataset.py globs against this list
+  extensions: [".png", ".tif", ".tiff", ".npy", ".pt", ".jpg", ".bmp"]
+  # Patch size for training crops (NoisyLR is 128x128)
+  patch_size: 128
+  # Number of dataloader workers
+  num_workers: 2          # Kaggle CPUs
+  # Pin memory for CUDA transfer
+  pin_memory: true
+
+# --- Model ---
+model:
+  # NAFNet backbone
+  in_channels: 1          # auto-detected at runtime; 1=grayscale, 3=RGB
+  out_channels: 1         # matches in_channels
+  width: 64               # base channel width
+  enc_block_counts: [2, 2, 4, 8]   # encoder blocks per stage
+  dec_block_counts: [2, 2, 2, 2]   # decoder blocks per stage
+  middle_block_count: 12            # bottleneck blocks
+  # Degradation conditioning branch
+  cond_embed_dim: 64       # conditioning vector dimension
+  cond_num_features: 6     # number of degradation features extracted
+  # Unrolled stages
+  num_unrolled_stages: 2   # 2-3; ablate to find optimal
+  share_weights: true      # share weights across unrolled stages
+  # SR head
+  upscale_factor: 2        # PixelShuffle upscaling factor
+  # Global residual
+  global_residual: true    # output = bilinear_upsample(input) + residual
+
+# --- Loss ---
+loss:
+  charbonnier:
+    enabled: true
+    epsilon: 1.0e-3
+  ssim:
+    enabled: true
+    weight: 0.3
+    window_size: 11
+  fft:
+    enabled: true
+    weight: 0.1
+  range_consistency:
+    enabled: true
+    weight: 0.05
+  # Edge preservation (semiconductor-critical, Sobel gradient-domain)
+  edge:
+    enabled: true
+    weight: 0.1
+  degradation:
+    enabled: true
+    weight: 0.1
+  lpips:
+    enabled: false          # gated — validate before trusting (§4 note)
+    weight: 0.1
+    net: "vgg"              # "vgg" | "alex"
+
+# --- Optimizer ---
+optimizer:
+  name: "adamw"
+  lr: 1.0e-4              # reduced from 3e-4 — safer for 116M params with AMP + Level 2 Curriculum
+  weight_decay: 1.0e-4
+  betas: [0.9, 0.999]
+
+# --- LR Schedule ---
+scheduler:
+  name: "cosine"
+  warmup_epochs: 10       # longer warmup — stabilises AMP at start
+  min_lr: 1.0e-6
+  T_max: 100               # total epochs for cosine cycle (matches training epochs)
+
+# --- Training ---
+training:
+  epochs: 100               # hackathon-realistic; curriculum completes at epoch 50
+  batch_size: 16           # Kaggle 16GB GPU optimization (4x faster than laptop)
+  gradient_clip_norm: 1.0
+  amp: true                # automatic mixed precision — large speedup on RTX
+  ema:
+    enabled: true
+    decay: 0.999
+  # OOM safety: automatically halve batch size on OOM
+  oom_auto_halve: true
+  # Checkpoint
+  checkpoint_dir: "weights"
+  save_every: 5            # save checkpoint every 5 epochs
+  # Logging
+  log_every: 50            # log every 50 steps
+
+# --- Augmentation ---
+augmentation:
+  # Geometric (light only — semiconductor imagery has consistent orientation)
+  random_flip: true
+  random_rotate: true      # 90° rotations only
+  random_crop: false       # dataset.py already does this scale-aware
+  # Physics-aware synthetic degradation (order-randomized)
+  synthetic:
+    enabled: true
+    # Speckle noise parameters
+    speckle:
+      enabled: true
+      var_range: [0.01, 0.15]
+    # Gaussian noise parameters
+    gaussian:
+      enabled: true
+      sigma_range: [5, 50]    # in pixel intensity units [0, 255]
+    # Downsampling parameters
+    downsample:
+      enabled: true
+      scale_range: [2, 4]
+  # Curriculum scheduling
+  curriculum:
+    enabled: true
+    warmup_epochs: 5         # single mild degradation for first 5 epochs
+    full_epochs: 20          # full triple-composited by epoch 20
+
+# --- Evaluation ---
+evaluation:
+  weights_path: "weights/model.pt"
+  output_dir: "outputs/restored_test"
+  metrics: ["psnr", "ssim", "lpips"]
+  save_images: true

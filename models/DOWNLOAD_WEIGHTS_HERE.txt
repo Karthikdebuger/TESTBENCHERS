@@ -1,0 +1,6 @@
+Since the model.pt file is 1.3 GB, it exceeds GitHub's file limit.
+
+Please download the model.pt file from the following Google Drive link:
+https://drive.google.com/drive/folders/1PS2Og-_RbREirUDsEa4ehLZ2ezrFTKtk?usp=sharing
+
+Once downloaded, place the `model.pt` file exactly inside this `models/` directory before running run.py!
